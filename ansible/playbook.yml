@@ -1,0 +1,62 @@
+---
+- name: Configurar ambiente de desenvolvimento
+  hosts: localhost
+  connection: local
+  become: yes
+  vars:
+    app_dir: "{{ playbook_dir }}/../"
+    backend_dir: "{{ app_dir }}/backend"
+    frontend_dir: "{{ app_dir }}/frontend"
+    db_name: crud_app_dev
+    db_user: root
+    db_password: ""
+
+  tasks:
+    - name: Instalar dependências do sistema
+      package:
+        name:
+          - nodejs
+          - npm
+          - mysql-server
+        state: present
+
+    - name: Iniciar e habilitar serviço MySQL
+      service:
+        name: mysql
+        state: started
+        enabled: yes
+
+    - name: Criar banco de dados
+      mysql_db:
+        name: "{{ db_name }}"
+        state: present
+        login_unix_socket: /var/run/mysqld/mysqld.sock
+
+    - name: Instalar dependências do backend
+      npm:
+        path: "{{ backend_dir }}"
+        state: present
+
+    - name: Instalar dependências do frontend
+      npm:
+        path: "{{ frontend_dir }}"
+        state: present
+
+    - name: Configurar variáveis de ambiente do backend
+      template:
+        src: templates/backend.env.j2
+        dest: "{{ backend_dir }}/.env"
+        mode: '0644'
+
+    - name: Configurar variáveis de ambiente do frontend
+      template:
+        src: templates/frontend.env.j2
+        dest: "{{ frontend_dir }}/.env"
+        mode: '0644'
+
+    - name: Iniciar aplicação em modo de desenvolvimento
+      shell: |
+        cd {{ backend_dir }} && npm run dev &
+        cd {{ frontend_dir }} && npm run dev
+      async: 3600
+      poll: 0 
