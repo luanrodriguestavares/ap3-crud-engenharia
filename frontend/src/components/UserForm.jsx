@@ -38,10 +38,22 @@ function UserForm() {
             setIsSubmitting(true)
             try {
                 if (isEditing) {
-                    await axios.put(`/api/users/${id}`, formData)
+                    const response = await axios.put(`/api/users/${id}`, formData)
+                    return response.data
                 } else {
-                    await axios.post("/api/users", formData)
+                    const response = await axios.post("/api/users", formData)
+                    return response.data
                 }
+            } catch (error) {
+                if (error.response?.data?.errors) {
+                    const errorMessage = error.response.data.errors.map(err => err.message).join('\n')
+                    alert(errorMessage)
+                } else if (error.response?.data?.message) {
+                    alert(error.response.data.message)
+                } else {
+                    alert('Ocorreu um erro ao salvar o usuário')
+                }
+                throw error
             } finally {
                 setIsSubmitting(false)
             }
